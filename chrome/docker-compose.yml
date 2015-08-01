@@ -1,0 +1,11 @@
+chrome:
+  image: jess/chrome
+  volumes:
+    - /tmp/.X11-unix:/tmp/.X11-unix
+    - $HOME/Downloads:/root/Downloads
+    - $HOME/.config/google-chrome/:/data
+  environment:
+    - DISPLAY
+  net: "host"
+  devices:
+    - "/dev/snd"
