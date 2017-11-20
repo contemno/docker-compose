@@ -33,7 +33,7 @@ wait_for_api() {
   while ! grafana_api GET /api/user/preferences
   do
     sleep 5
-  done 
+  done
 }
 
 install_datasources() {
@@ -44,9 +44,9 @@ install_datasources() {
     if [[ -f "${datasource}" ]]; then
       echo "Installing datasource ${datasource}"
       if grafana_api POST /api/datasources "" "${datasource}"; then
-        echo "installed ok"
+        echo "datasource ${datasource} installed ok"
       else
-        echo "install failed"
+        echo "datasource ${datasource} install failed"
       fi
     fi
   done
@@ -63,9 +63,9 @@ install_dashboards() {
       echo "{\"dashboard\": `cat $dashboard`}" > "${dashboard}.wrapped"
 
       if grafana_api POST /api/dashboards/db "" "${dashboard}.wrapped"; then
-        echo "installed ok"
+        echo "dashboard ${dashboard} installed ok"
       else
-        echo "install failed"
+        echo "dashboard ${dashboard} install failed"
       fi
 
       rm "${dashboard}.wrapped"
