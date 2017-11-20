@@ -1,12 +1,17 @@
 version: '2.1'
 
 networks:
-  monitor-net:
+  ops-net:
     driver: bridge
 
 volumes:
     prometheus_data: {}
     grafana_data: {}
+    influxdb_data: {}
+    jenkins_data: {}
+    postgresql_data: {}
+    gitlab_data: {}
+    gitlab_logs: {}
 
 services:
 
@@ -28,9 +33,9 @@ services:
     expose:
       - 9090
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   alertmanager:
     image: prom/alertmanager:latest
@@ -44,9 +49,9 @@ services:
     expose:
       - 9093
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   nodeexporter:
     image: prom/node-exporter:v0.15.1
@@ -65,9 +70,9 @@ services:
     expose:
       - 9100
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   cadvisor:
     image: google/cadvisor:v0.28.0
@@ -82,15 +87,15 @@ services:
     ports:
       - 8080:8080
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   influxdb:
     image: influxdb:latest
     container_name: influxdb
     volumes:
-      - ./influxdb:/var/lib/influxdb
+      - influxdb_data:/var/lib/influxdb
     restart: unless-stopped
     ports:
       - "8086:8086"
@@ -109,9 +114,9 @@ services:
       - INFLUXDB_UDP_DATABASE=gitlab
     entrypoint: /init-influxdb.sh
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   grafana:
     image: grafana/grafana:4.6.2
@@ -131,9 +136,9 @@ services:
     expose:
       - 3000
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   caddy:
     image: stefanprodan/caddy
@@ -149,9 +154,9 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
     restart: unless-stopped
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
 
   jenkins:
     image: jenkins/jenkins:latest
@@ -160,15 +165,39 @@ services:
       - "8081:8080"
       - "50001:50000"
     volumes:
-      - ./jenkins:/var/jenkins_home
+      - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - JENKINS_HOST_HOME="/data/jenkins"
     restart: unless-stopped
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - ops-net
+    labels:
+      org.label-schema.group: "ops"
+
+  postgresql:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+  	- POSTGRES_USER=${GITLAB_DB_USER:-gitlab}
+  	- POSTGRES_PASSWORD=${GITLAB_DB_ADMIN_PASSWORD:-gitlab}
+  	- POSTGRES_DB=gitlabhq_production
+    networks:
+      - ops-net
+    labels:
+      org.label-schema.group: "ops"
+  # the following are hints on what volumes to mount if you want to persist data
+    volumes:
+    - postgresql_data:/var/lib/postgresql:rw
 
   gitlab:
     image: gitlab/gitlab-ce:latest
@@ -177,17 +206,28 @@ services:
     hostname: 'localhost'
     environment:
       GITLAB_OMNIBUS_CONFIG: |
+        postgresql['enable'] = false
+        gitlab_rails['db_username'] = "${GITLAB_DB_USER:-gitlab}"
+        gitlab_rails['db_password'] = "${GITLAB_DB_ADMIN_PASSWORD:-gitlab}"
+        gitlab_rails['db_host'] = "postgresql"
+        gitlab_rails['db_port'] = "5432"
+        gitlab_rails['db_database'] = "gitlabhq_production"
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'utf8'
+        redis['enable'] = false
+        gitlab_rails['redis_host'] = 'redis'
+        gitlab_rails['redis_port'] = '6379'
         external_url 'http://localhost:10080'
         gitlab_rails['gitlab_shell_ssh_port'] = 10022
         # Add any other gitlab.rb configuration here, each on its own line
     networks:
-      - monitor-net
+      - ops-net
     labels:
-      org.label-schema.group: "monitoring"
+      org.label-schema.group: "ops"
     ports:
       - '10080:10080'
       - '10022:22'
     volumes:
-      - './gitlab/config:/etc/gitlab'
-      - './gitlab/logs:/var/log/gitlab'
-      - './gitlab/data:/var/opt/gitlab'
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+      - ./gitlab/config:/etc/gitlab

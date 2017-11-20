@@ -12,7 +12,7 @@ Clone this repository on your Docker host, cd into dockprom directory and run co
 git clone https://github.com/mixmatch/docker-compose
 cd docker-compose/ops
 
-ADMIN_USER=admin ADMIN_PASSWORD=admin docker-compose up -d
+ADMIN_USER=admin ADMIN_PASSWORD=admin GITLAB_DB_USER=gitlab GITLAB_DB_ADMIN_PASSWORD=admin docker-compose up -d
 ```
 
 Prerequisites:
