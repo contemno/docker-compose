@@ -188,9 +188,9 @@ services:
     image: postgres:latest
     restart: unless-stopped
     environment:
-  	- POSTGRES_USER=${GITLAB_DB_USER:-gitlab}
-  	- POSTGRES_PASSWORD=${GITLAB_DB_ADMIN_PASSWORD:-gitlab}
-  	- POSTGRES_DB=gitlabhq_production
+      - POSTGRES_USER=${GITLAB_DB_USER:-gitlab}
+      - POSTGRES_PASSWORD=${GITLAB_DB_ADMIN_PASSWORD:-gitlab}
+      - POSTGRES_DB=gitlabhq_production
     networks:
       - ops-net
     labels:
