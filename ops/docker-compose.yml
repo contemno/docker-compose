@@ -12,6 +12,7 @@ volumes:
     postgresql_data: {}
     gitlab_data: {}
     gitlab_logs: {}
+    gitlab_config: {}
 
 services:
 
@@ -230,4 +231,4 @@ services:
     volumes:
       - gitlab_logs:/var/log/gitlab
       - gitlab_data:/var/opt/gitlab
-      - ./gitlab/config:/etc/gitlab
+      - gitlab_config:/etc/gitlab
